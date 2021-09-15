@@ -25,6 +25,8 @@
 
 #include "MapQuickView.h"
 #include "SceneQuickView.h"
+
+#include "Esri/ArcGISRuntime/Toolkit/register.h"
 #include "ArcGISRuntimeEnvironment.h"
 
 #include "Animate3DSymbols.h"
@@ -86,6 +88,9 @@ int main(int argc, char *argv[])
 
   // Add the Runtime and Extras path
   engine.addImportPath(arcGISRuntimeImportPath);
+
+  // Register the application view with the toolkit
+  Esri::ArcGISRuntime::Toolkit::registerComponents(engine);
 
   // Set the source
   engine.load(QUrl("qrc:/Samples/Scenes/Animate3DSymbols/main.qml"));

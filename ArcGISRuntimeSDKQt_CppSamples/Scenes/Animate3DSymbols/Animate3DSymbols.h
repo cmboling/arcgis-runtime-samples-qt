@@ -25,12 +25,9 @@ namespace Esri
   {
     class GlobeCameraController;
     class Graphic;
-    class GraphicsOverlay;
-    class MapQuickView;
     class ModelSceneSymbol;
     class OrbitGeoElementCameraController;
     class SceneQuickView;
-    class SimpleMarkerSymbol;
   }
 }
 
@@ -63,8 +60,6 @@ public:
   Q_INVOKABLE void animate();
   Q_INVOKABLE void changeMission(const QString& missionName);
   QAbstractListModel* missionsModel();
-  Q_INVOKABLE void zoomMapIn();
-  Q_INVOKABLE void zoomMapOut();
   Q_INVOKABLE void viewWidthChanged(bool sceneViewIsWider);
   Q_INVOKABLE void setFollowing(bool following);
 
@@ -90,8 +85,6 @@ signals:
   void missionFrameChanged();
 
 private:
-  void createModel2d(Esri::ArcGISRuntime::GraphicsOverlay* mapOverlay);
-  void createRoute2d(Esri::ArcGISRuntime::GraphicsOverlay* mapOverlay);
   void createGraphic3D();
 
   static const QString HEADING;
@@ -100,12 +93,8 @@ private:
   static const QString ANGLE;
 
   Esri::ArcGISRuntime::SceneQuickView* m_sceneView = nullptr;
-  Esri::ArcGISRuntime::MapQuickView* m_mapView = nullptr;
   Esri::ArcGISRuntime::ModelSceneSymbol* m_model3d = nullptr;
   Esri::ArcGISRuntime::Graphic* m_graphic3d = nullptr;
-  Esri::ArcGISRuntime::Graphic* m_graphic2d = nullptr;
-  Esri::ArcGISRuntime::SimpleMarkerSymbol* m_symbol2d = nullptr;
-  Esri::ArcGISRuntime::Graphic* m_routeGraphic = nullptr;
   Esri::ArcGISRuntime::GlobeCameraController* m_globeController = nullptr;
   Esri::ArcGISRuntime::OrbitGeoElementCameraController* m_followingController = nullptr;
   QString m_dataPath;

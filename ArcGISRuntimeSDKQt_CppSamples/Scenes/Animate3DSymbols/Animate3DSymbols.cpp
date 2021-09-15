@@ -25,20 +25,13 @@
 #include "DistanceCompositeSceneSymbol.h"
 #include "GlobeCameraController.h"
 #include "GraphicsOverlay.h"
-#include "Map.h"
-#include "MapQuickView.h"
 #include "ModelSceneSymbol.h"
 #include "OrbitGeoElementCameraController.h"
-#include "PointCollection.h"
-#include "Polyline.h"
-#include "PolylineBuilder.h"
 #include "Scene.h"
 #include "SceneQuickView.h"
 #include "SceneViewTypes.h"
-#include "SimpleMarkerSymbol.h"
 #include "SimpleMarkerSceneSymbol.h"
 #include "SimpleRenderer.h"
-#include "SpatialReference.h"
 
 #include "MissionData.h"
 
@@ -97,7 +90,6 @@ Animate3DSymbols::~Animate3DSymbols() = default;
 void Animate3DSymbols::init()
 {
   qmlRegisterType<SceneQuickView>("Esri.Samples", 1, 0, "SceneView");
-  qmlRegisterType<MapQuickView>("Esri.Samples", 1, 0, "MapView");
   qmlRegisterType<Animate3DSymbols>("Esri.Samples", 1, 0, "Animate3DSymbolsSample");
   qmlRegisterUncreatableType<QAbstractListModel>("Esri.Samples", 1, 0, "AbstractListModel", "AbstractListModel is uncreateable");
 }
@@ -136,24 +128,6 @@ void Animate3DSymbols::componentComplete()
   renderProperties.setRollExpression(QString("[%1]").arg(ROLL));
   renderer3D->setSceneProperties(renderProperties);
   sceneOverlay->setRenderer(renderer3D);
-
-  // find QML MapView component
-  m_mapView = findChild<MapQuickView*>("mapView");
-  m_mapView->setAttributionTextVisible(false);
-
-  // set up mini map
-  Map* map = new Map(BasemapStyle::ArcGISImageryStandard, this);
-  m_mapView->setMap(map);
-
-  // create a graphics overlay for the mini map
-  GraphicsOverlay* mapOverlay = new GraphicsOverlay(this);
-  m_mapView->graphicsOverlays()->append(mapOverlay);
-
-  // set up route graphic
-  createRoute2d(mapOverlay);
-
-  // set up overlay 2D graphic
-  createModel2d(mapOverlay);
 }
 
 void Animate3DSymbols::setMissionFrame(int newFrame)
@@ -183,10 +157,6 @@ void Animate3DSymbols::animate()
     m_graphic3d->attributes()->replaceAttribute(HEADING, dp.m_heading);
     m_graphic3d->attributes()->replaceAttribute(PITCH, dp.m_pitch);
     m_graphic3d->attributes()->replaceAttribute(ROLL, dp.m_roll);
-
-    // move 2D graphic to the new position
-    m_graphic2d->setGeometry(dp.m_pos);
-    m_symbol2d->setAngle(dp.m_heading);
   }
 
   // increment the frame count
@@ -195,6 +165,9 @@ void Animate3DSymbols::animate()
 
 void Animate3DSymbols::changeMission(const QString &missionNameStr)
 {
+  if (m_sceneView == nullptr)
+    return;
+
   setMissionFrame(0);
 
   // read the mission data from the samples .csv files
@@ -202,20 +175,8 @@ void Animate3DSymbols::changeMission(const QString &missionNameStr)
   m_missionData->parse(m_dataPath + "/Missions/" + formattedname.remove(" ") + ".csv");
 
   // if the mission was loaded successfully, move to the start position
-  if (missionReady() && m_routeGraphic)
+  if (missionReady())
   {
-    // create a polyline representing the route for the mission
-    PolylineBuilder* routeBldr = new PolylineBuilder(SpatialReference::wgs84(), this);
-    for (int i = 0; i < missionSize(); ++i)
-    {
-      const MissionData::DataPoint& dp = m_missionData->dataAt(i);
-      routeBldr->addPoint(dp.m_pos);
-    }
-
-    // set the polyline as a graphic on the mapView
-    m_routeGraphic->setGeometry(routeBldr->toGeometry());
-
-    m_mapView->setViewpointAndWait(Viewpoint(m_routeGraphic->geometry()));
     createGraphic3D();
   }
 
@@ -244,33 +205,6 @@ void Animate3DSymbols::setAngle(double angle)
     m_followingController->setCameraPitchOffset(angle);
     emit angleChanged();
   }
-}
-
-void Animate3DSymbols::createModel2d(GraphicsOverlay* mapOverlay)
-{
-  if (m_symbol2d || m_graphic2d)
-    return;
-
-  // get the mission data for the frame
-  const MissionData::DataPoint& dp = m_missionData->dataAt(missionFrame());
-
-  // create a blue triangle symbol to represent the plane on the mini map
-  m_symbol2d = new SimpleMarkerSymbol(SimpleMarkerSymbolStyle::Triangle, Qt::blue, 10, this);
-  m_symbol2d->setAngle(dp.m_heading);
-
-  // create a graphic with the symbol
-  m_graphic2d = new Graphic(dp.m_pos, m_symbol2d, this);
-
-  mapOverlay->graphics()->append(m_graphic2d);
-}
-
-void Animate3DSymbols::createRoute2d(GraphicsOverlay* mapOverlay)
-{
-  // Create a 2d graphic of a solid red line to represen the route of the mission
-  SimpleLineSymbol* routeSymbol = new SimpleLineSymbol(SimpleLineSymbolStyle::Solid, Qt::red, 1, this);
-  m_routeGraphic = new Graphic(this);
-  m_routeGraphic->setSymbol(routeSymbol);
-  mapOverlay->graphics()->append(m_routeGraphic);
 }
 
 void Animate3DSymbols::createGraphic3D()
@@ -318,36 +252,15 @@ void Animate3DSymbols::setFollowing(bool following)
     m_sceneView->setCameraController(m_globeController);
 }
 
-void Animate3DSymbols::zoomMapIn()
-{
-  if (!m_mapView ||
-      !m_routeGraphic)
-    return;
-
-  // zoom the map view in, focusing on the position of the 2d graphic for the helicopter
-  m_mapView->setViewpoint(Viewpoint((Point)m_routeGraphic->geometry(), m_mapView->mapScale() / m_mapZoomFactor));
-}
-
-void Animate3DSymbols::zoomMapOut()
-{
-  if (!m_mapView ||
-      !m_routeGraphic)
-    return;
-
-  // zoom the map view out, focusing on the position of the 2d graphic for the helicopter
-  m_mapView->setViewpoint(Viewpoint((Point)m_routeGraphic->geometry(), m_mapView->mapScale() * m_mapZoomFactor));
-}
-
 void Animate3DSymbols::viewWidthChanged(bool sceneViewIsWider)
 {
-  if (!m_sceneView || !m_mapView)
+  if (!m_sceneView)
   {
     return;
   }
 
   // only show the attribution text on the view with the widest visible extent
   m_sceneView->setAttributionTextVisible(sceneViewIsWider);
-  m_mapView->setAttributionTextVisible(!sceneViewIsWider);
 }
 
 bool Animate3DSymbols::missionReady() const

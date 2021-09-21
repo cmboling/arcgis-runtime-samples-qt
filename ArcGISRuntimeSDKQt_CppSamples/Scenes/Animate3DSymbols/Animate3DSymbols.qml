@@ -28,6 +28,7 @@ Animate3DSymbolsSample {
     missionFrame: progressSlider.value
     zoom: cameraDistance.value
     angle: cameraAngle.value
+    insetView: overviewMap.controller.insetView
 
     onNextFrameRequested: {
         progressSlider.value = progressSlider.value + 1;
@@ -143,6 +144,68 @@ Animate3DSymbolsSample {
                 to: 100
                 value: 50
                 text: "speed"
+            }
+
+            Rectangle {
+                Layout.columnSpan: 2
+                Layout.alignment: Qt.AlignLeft | Qt.AlignBottom
+                Layout.minimumHeight: parent.height * 0.25
+                Layout.minimumWidth: parent.width * 0.3
+                clip: true
+
+                OverviewMap {
+                    id: overviewMap
+                    anchors.fill: parent
+                    geoView: sceneView
+                    scaleFactor: 10
+                }
+
+                RowLayout {
+                    anchors {
+                        left: parent.left
+                        top: parent.top
+                    }
+                    spacing: 10
+
+                    Rectangle {
+                        Layout.margins: 5
+                        height: width
+                        width: childrenRect.width
+                        clip: true
+                        radius: 5
+
+                        opacity: 0.9
+                        Image {
+                            source: "qrc:/Samples/Scenes/Animate3DSymbols/plus-16-f.png"
+                            width: 24
+                            height: width
+
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: zoomMapIn()
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.margins: 5
+                        height: width
+                        width: childrenRect.width
+                        opacity: 0.9
+                        clip: true
+                        radius: 5
+
+                        Image {
+                            source: "qrc:/Samples/Scenes/Animate3DSymbols/minus-16-f.png"
+                            width: 24
+                            height: width
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: zoomMapOut()
+                            }
+                        }
+                    }
+                }
             }
         }
     }

@@ -25,9 +25,12 @@ namespace Esri
   {
     class GlobeCameraController;
     class Graphic;
+    class GraphicsOverlay;
+    class MapQuickView;
     class ModelSceneSymbol;
     class OrbitGeoElementCameraController;
     class SceneQuickView;
+    class SimpleMarkerSymbol;
   }
 }
 
@@ -48,6 +51,7 @@ class Animate3DSymbols : public QQuickItem
   Q_PROPERTY(double minZoom READ minZoom NOTIFY minZoomChanged)
   Q_PROPERTY(double zoom READ zoom WRITE setZoom NOTIFY zoomChanged)
   Q_PROPERTY(double angle READ angle WRITE setAngle NOTIFY angleChanged)
+  Q_PROPERTY(QObject* insetView READ insetView WRITE setInsetView NOTIFY insetViewChanged)
   Q_OBJECT
 
 public:
@@ -60,7 +64,8 @@ public:
   Q_INVOKABLE void animate();
   Q_INVOKABLE void changeMission(const QString& missionName);
   QAbstractListModel* missionsModel();
-  Q_INVOKABLE void viewWidthChanged(bool sceneViewIsWider);
+  Q_INVOKABLE void zoomMapIn();
+  Q_INVOKABLE void zoomMapOut();
   Q_INVOKABLE void setFollowing(bool following);
 
   bool missionReady() const;
@@ -83,8 +88,11 @@ signals:
   void zoomChanged();
   void angleChanged();
   void missionFrameChanged();
+  void insetViewChanged();
 
 private:
+  void createModel2d(Esri::ArcGISRuntime::GraphicsOverlay* mapOverlay);
+  void createRoute2d(Esri::ArcGISRuntime::GraphicsOverlay* mapOverlay);
   void createGraphic3D();
 
   static const QString HEADING;
@@ -95,13 +103,21 @@ private:
   Esri::ArcGISRuntime::SceneQuickView* m_sceneView = nullptr;
   Esri::ArcGISRuntime::ModelSceneSymbol* m_model3d = nullptr;
   Esri::ArcGISRuntime::Graphic* m_graphic3d = nullptr;
+  Esri::ArcGISRuntime::Graphic* m_graphic2d = nullptr;
+  Esri::ArcGISRuntime::SimpleMarkerSymbol* m_symbol2d = nullptr;
+  Esri::ArcGISRuntime::Graphic* m_routeGraphic = nullptr;
   Esri::ArcGISRuntime::GlobeCameraController* m_globeController = nullptr;
   Esri::ArcGISRuntime::OrbitGeoElementCameraController* m_followingController = nullptr;
   QString m_dataPath;
   QAbstractListModel* m_missionsModel = nullptr;
   std::unique_ptr<MissionData> m_missionData;
+  Esri::ArcGISRuntime::MapQuickView* m_insetView;
   int m_frame = 0;
   double m_mapZoomFactor = 5.0;
+
+
+  void setInsetView(QObject* view);
+  QObject* insetView() const;
 };
 
 #endif // ANIMATE3DSYMBOLS_H
